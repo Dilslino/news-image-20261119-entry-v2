@@ -5,9 +5,18 @@ copies entry.png (sitting next to this file) to <output>/entry.png.
 Never deletes the output directory itself.
 """
 
+import hashlib
 import os
 import shutil
 import sys
+
+
+def _sha256(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def main():
@@ -17,7 +26,12 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
     dst = os.path.join(out_dir, "entry.png")
     shutil.copyfile(src, dst)
-    print("wrote %s" % dst)
+    src_hash = _sha256(src)
+    dst_hash = _sha256(dst)
+    if src_hash != dst_hash:
+        print("ERROR: copied output hash %s != source hash %s" % (dst_hash, src_hash), file=sys.stderr)
+        return 1
+    print("wrote %s (%d bytes, sha256 %s)" % (dst, os.path.getsize(dst), dst_hash))
 
 
 if __name__ == "__main__":
